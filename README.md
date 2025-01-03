@@ -2,8 +2,10 @@
 
 ## Configuration tested
 
-Processor: AMD Ryzen 9 7950 X3D 
+Processor: AMD Ryzen 9 7950 X3D
+
 Video: AMD Radeon RX 6800 XT
+
 Memory: 96 Gb (DDR 5)
 
 ## How to apply on PC

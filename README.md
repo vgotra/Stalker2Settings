@@ -14,7 +14,7 @@ Motheboard: MPG X670E Carbon Wifi with latest firmware (7D70v1M3(Beta version))
 
 Just copy **Engine.ini** and **GameUserSettings.ini** to folder **C:\Users\%USERNAME%\AppData\Local\Stalker2\Saved\Config\Windows** and replace file **GameUserSettings.ini**. Change your settings in game if you need to change them!
 
-P.S. Don't forget to set **r.PSOWarmup.WarmupMaterials=1** in **Engine.ini** after update of game and rebuild of shaders, after rebuild of shaders just set **r.PSOWarmup.WarmupMaterials=0**
+P.S. Don't forget to set **r.PSOWarmup.WarmupMaterials=1** in **Engine.ini** after update of game and rebuild shaders, after rebuild of shaders just set **r.PSOWarmup.WarmupMaterials=0**.
 
 ## FPS
 

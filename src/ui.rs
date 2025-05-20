@@ -1,6 +1,6 @@
 use cursive::{
     Cursive, CursiveExt,
-    views::{Dialog, TextView, EditView, SelectView, LinearLayout, ScrollView, Button, DummyView},
+    views::{Dialog, TextView, EditView, SelectView, LinearLayout, Button, DummyView},
     traits::{Nameable, Scrollable},
     align::HAlign,
     event::Key,
@@ -33,14 +33,17 @@ pub fn run_app(db_connection: Connection) -> Result<(), Box<dyn Error>> {
     app.add_global_callback(Key::Esc, |s| { s.pop_layer(); });
     app.add_global_callback('q', |s| { s.quit(); });
 
-    // Load settings from Engine.ini
-    let settings = match config::load_engine_settings() {
+    // Load settings from database
+    let settings = match config::load_settings_from_db(&db_conn.borrow()) {
         Ok(s) => s,
         Err(e) => {
             app.add_layer(
-                Dialog::around(TextView::new(format!("Error loading settings: {}", e)))
-                    .title("Error")
-                    .button("Quit", |s| { s.quit(); })
+                Dialog::around(TextView::new(format!(
+                    "Error loading settings from database: {}\n\nPlease make sure the database is properly initialized.",
+                    e
+                )))
+                .title("Error")
+                .button("Quit", |s| { s.quit(); })
             );
             app.run();
             return Err(Box::new(e));
@@ -240,7 +243,6 @@ fn show_setting_detail(app: &mut Cursive, setting: Setting, db_conn: Rc<RefCell<
     );
 }
 
-/// Save a setting value
 fn save_setting_value(app: &mut Cursive, mut setting: Setting, db_conn: Rc<RefCell<Connection>>) {
     let id = "value_input";
     let new_value = match setting.value_type {
@@ -258,7 +260,6 @@ fn save_setting_value(app: &mut Cursive, mut setting: Setting, db_conn: Rc<RefCe
         }
     };
 
-    // Validate the value
     if !setting.is_valid_value(&new_value) {
         app.add_layer(
             Dialog::around(TextView::new("Invalid value for this setting type."))
@@ -268,10 +269,19 @@ fn save_setting_value(app: &mut Cursive, mut setting: Setting, db_conn: Rc<RefCe
         return;
     }
 
-    // Update the setting in the app data
     setting.current_value = new_value;
 
-    let mut app_data = app.user_data::<AppData>().unwrap();
+    // Save to database
+    if let Err(e) = config::save_setting_to_db(&mut db_conn.borrow_mut(), &setting) {
+        app.add_layer(
+            Dialog::around(TextView::new(format!("Error saving setting: {}", e)))
+                .title("Error")
+                .button("OK", |s| { s.pop_layer(); })
+        );
+        return;
+    }
+
+    let app_data = app.user_data::<AppData>().unwrap();
     for s in &mut app_data.settings {
         if s.section == setting.section && s.name == setting.name {
             s.current_value = setting.current_value.clone();
@@ -279,10 +289,7 @@ fn save_setting_value(app: &mut Cursive, mut setting: Setting, db_conn: Rc<RefCe
         }
     }
 
-    // Close the dialog
     app.pop_layer();
-
-    // Refresh the settings list
     app.pop_layer();
     show_settings_list(app, db_conn);
 }
@@ -371,8 +378,8 @@ fn show_preset_detail(app: &mut Cursive, preset: SettingsPreset, db_conn: Rc<Ref
 }
 
 /// Apply a preset to the current settings
-fn apply_preset(app: &mut Cursive, preset: SettingsPreset, db_conn: Rc<RefCell<Connection>>) {
-    let mut app_data = app.user_data::<AppData>().unwrap();
+fn apply_preset(app: &mut Cursive, preset: SettingsPreset, _db_conn: Rc<RefCell<Connection>>) {
+    let app_data = app.user_data::<AppData>().unwrap();
 
     // Update settings with values from the preset
     for setting in &mut app_data.settings {
@@ -526,8 +533,8 @@ fn generate_recommended_settings(app: &mut Cursive, db_conn: Rc<RefCell<Connecti
         app_data.system_info.clone()
     };
 
-    // Generate recommended settings
-    let preset = config::generate_recommended_settings(&system_info);
+    // Generate recommended settings using the database connection
+    let preset = config::generate_recommended_settings(&system_info, Some(&db_conn.borrow()));
     let preset_clone = preset.clone();
     let db_conn_clone = Rc::clone(&db_conn);
 
@@ -556,7 +563,7 @@ fn generate_recommended_settings(app: &mut Cursive, db_conn: Rc<RefCell<Connecti
 }
 
 /// Save current settings to Engine.ini
-fn save_current_settings(app: &mut Cursive, db_conn: Rc<RefCell<Connection>>) {
+fn save_current_settings(app: &mut Cursive, _db_conn: Rc<RefCell<Connection>>) {
     let app_data = app.user_data::<AppData>().unwrap();
 
     // Create a preset from current settings

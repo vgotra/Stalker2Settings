@@ -3,18 +3,26 @@ use std::path::Path;
 use crate::models::{Setting, SettingsPreset};
 use std::collections::HashMap;
 use chrono;
+use crate::migrations;
 
-/// Initialize the database connection and create tables if they don't exist
-pub fn initialize_db() -> Result<Connection> {
+pub fn initialize_db(recreate_db: bool) -> Result<Connection> {
     let db_path = Path::new("settings.db");
-    let db_exists = db_path.exists();
+    let mut db_exists = db_path.exists();
+
+    // If recreate_db is true and the database exists, delete it
+    if recreate_db && db_exists {
+        if let Err(e) = std::fs::remove_file(db_path) {
+            return Err(rusqlite::Error::ToSqlConversionFailure(Box::new(e)));
+        }
+        println!("Recreating database...");
+        db_exists = false;
+    }
 
     let mut conn = Connection::open(db_path)?;
 
-    if !db_exists {
-        // Create tables
+    if !db_exists || recreate_db {
         conn.execute(
-            "CREATE TABLE presets (
+            "CREATE TABLE IF NOT EXISTS presets (
                 id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,
                 description TEXT,
@@ -24,7 +32,7 @@ pub fn initialize_db() -> Result<Connection> {
         )?;
 
         conn.execute(
-            "CREATE TABLE preset_settings (
+            "CREATE TABLE IF NOT EXISTS preset_settings (
                 preset_id INTEGER,
                 setting_name TEXT NOT NULL,
                 setting_value TEXT NOT NULL,
@@ -34,27 +42,43 @@ pub fn initialize_db() -> Result<Connection> {
             [],
         )?;
 
-        // Create default presets
         create_default_presets(&mut conn)?;
     }
+
+    migrations::run_migrations(&mut conn)?;
 
     Ok(conn)
 }
 
-/// Create default presets in the database
 fn create_default_presets(conn: &mut Connection) -> Result<()> {
-    // Create a "Default" preset with default settings
+    // Parse Engine.ini to get default settings
+    let engine_ini_path = std::path::Path::new("Engine.ini");
+    let default_settings = match crate::config::parse_ini_file(engine_ini_path) {
+        Ok(settings) => {
+            let mut settings_map = HashMap::new();
+            for (section, properties) in settings {
+                for (key, value) in properties {
+                    let setting_key = format!("{}.{}", section, key);
+                    settings_map.insert(setting_key, value);
+                }
+            }
+            settings_map
+        },
+        Err(_) => HashMap::new(),
+    };
+
+    // Create Default preset with settings from Engine.ini
     let default_preset = SettingsPreset {
         id: None,
         name: "Default".to_string(),
         description: "Default settings from Engine.ini".to_string(),
         created_at: chrono::Local::now().to_rfc3339(),
-        settings: HashMap::new(), // Will be populated with default values
+        settings: default_settings.clone(),
     };
 
     save_preset(conn, &default_preset)?;
 
-    // Create presets for different performance levels
+    // Create performance presets with different settings
     let performance_presets = [
         ("Low", "Optimized for low-end systems"),
         ("Medium", "Balanced performance and quality"),
@@ -63,12 +87,101 @@ fn create_default_presets(conn: &mut Connection) -> Result<()> {
     ];
 
     for (name, desc) in performance_presets.iter() {
+        let mut preset_settings = default_settings.clone();
+
+        // Adjust settings based on performance tier
+        match *name {
+            "Low" => {
+                // Low-end settings: prioritize performance over quality
+                preset_settings.insert("SystemSettings.r.Streaming.PoolSize".to_string(), "2048".to_string());
+                preset_settings.insert("SystemSettings.r.AllowMultiThreadedShaderCreation".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAACurrentFrameWeight".to_string(), "0.1".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAASamples".to_string(), "4".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAASharpness".to_string(), "0.7".to_string());
+                preset_settings.insert("SystemSettings.r.Tonemapper.Sharpen".to_string(), "0.5".to_string());
+                preset_settings.insert("SystemSettings.r.RayTracing".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.Lumen".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.SSR".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.AmbientOcclusionLevels".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.ShadowQuality".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.VolumetricFog".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.MotionBlurQuality".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.DepthOfFieldQuality".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.BloomQuality".to_string(), "0".to_string());
+            },
+            "Medium" => {
+                // Medium settings: balanced performance and quality
+                preset_settings.insert("SystemSettings.r.Streaming.PoolSize".to_string(), "4096".to_string());
+                preset_settings.insert("SystemSettings.r.AllowMultiThreadedShaderCreation".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAACurrentFrameWeight".to_string(), "0.12".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAASamples".to_string(), "6".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAASharpness".to_string(), "0.8".to_string());
+                preset_settings.insert("SystemSettings.r.Tonemapper.Sharpen".to_string(), "0.6".to_string());
+                preset_settings.insert("SystemSettings.r.RayTracing".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.Lumen".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.SSR".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.AmbientOcclusionLevels".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.ShadowQuality".to_string(), "2".to_string());
+                preset_settings.insert("SystemSettings.r.VolumetricFog".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.MotionBlurQuality".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.DepthOfFieldQuality".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.BloomQuality".to_string(), "1".to_string());
+            },
+            "High" => {
+                // High settings: prioritize quality with good performance
+                preset_settings.insert("SystemSettings.r.Streaming.PoolSize".to_string(), "8192".to_string());
+                preset_settings.insert("SystemSettings.r.AllowMultiThreadedShaderCreation".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAACurrentFrameWeight".to_string(), "0.15".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAASamples".to_string(), "8".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAASharpness".to_string(), "0.9".to_string());
+                preset_settings.insert("SystemSettings.r.Tonemapper.Sharpen".to_string(), "0.7".to_string());
+                preset_settings.insert("SystemSettings.r.RayTracing".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.Lumen".to_string(), "0".to_string());
+                preset_settings.insert("SystemSettings.r.SSR".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.AmbientOcclusionLevels".to_string(), "2".to_string());
+                preset_settings.insert("SystemSettings.r.ShadowQuality".to_string(), "3".to_string());
+                preset_settings.insert("SystemSettings.r.VolumetricFog".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.MotionBlurQuality".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.DepthOfFieldQuality".to_string(), "2".to_string());
+                preset_settings.insert("SystemSettings.r.BloomQuality".to_string(), "2".to_string());
+            },
+            "Ultra" => {
+                // Ultra settings: maximum quality
+                preset_settings.insert("SystemSettings.r.Streaming.PoolSize".to_string(), "12288".to_string());
+                preset_settings.insert("SystemSettings.r.AllowMultiThreadedShaderCreation".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAACurrentFrameWeight".to_string(), "0.15".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAASamples".to_string(), "8".to_string());
+                preset_settings.insert("SystemSettings.r.TemporalAASharpness".to_string(), "0.9".to_string());
+                preset_settings.insert("SystemSettings.r.Tonemapper.Sharpen".to_string(), "0.8".to_string());
+                preset_settings.insert("SystemSettings.r.RayTracing".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.RayTracing.Reflections".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.RayTracing.AmbientOcclusion".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.Lumen".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.Lumen.Reflections".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.SSR".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.AmbientOcclusionLevels".to_string(), "3".to_string());
+                preset_settings.insert("SystemSettings.r.ShadowQuality".to_string(), "5".to_string());
+                preset_settings.insert("SystemSettings.r.VolumetricFog".to_string(), "1".to_string());
+                preset_settings.insert("SystemSettings.r.MotionBlurQuality".to_string(), "2".to_string());
+                preset_settings.insert("SystemSettings.r.DepthOfFieldQuality".to_string(), "3".to_string());
+                preset_settings.insert("SystemSettings.r.BloomQuality".to_string(), "3".to_string());
+            },
+            _ => {}
+        }
+
+        // Common settings for all presets
+        preset_settings.insert("SystemSettings.r.VSync".to_string(), "0".to_string());
+        preset_settings.insert("RenderingThread.bAllowThreadedRendering".to_string(), "True".to_string());
+        preset_settings.insert("RenderingThread.bAllowAsyncRenderThreadUpdates".to_string(), "True".to_string());
+        preset_settings.insert("Engine.InputSettings.RawMouseInputEnabled".to_string(), "1".to_string());
+        preset_settings.insert("Engine.InputSettings.bEnableMouseSmoothing".to_string(), "False".to_string());
+
         let preset = SettingsPreset {
             id: None,
             name: name.to_string(),
             description: desc.to_string(),
             created_at: chrono::Local::now().to_rfc3339(),
-            settings: HashMap::new(), // Will be populated with appropriate values
+            settings: preset_settings,
         };
 
         save_preset(conn, &preset)?;
@@ -77,11 +190,9 @@ fn create_default_presets(conn: &mut Connection) -> Result<()> {
     Ok(())
 }
 
-/// Save a settings preset to the database
 pub fn save_preset(conn: &mut Connection, preset: &SettingsPreset) -> Result<i64> {
     let tx = conn.transaction()?;
 
-    // Insert or update preset
     let preset_id = match preset.id {
         Some(id) => {
             tx.execute(
@@ -99,13 +210,11 @@ pub fn save_preset(conn: &mut Connection, preset: &SettingsPreset) -> Result<i64
         }
     };
 
-    // Delete existing settings for this preset
     tx.execute(
         "DELETE FROM preset_settings WHERE preset_id = ?1",
         params![preset_id],
     )?;
 
-    // Insert new settings
     for (name, value) in &preset.settings {
         tx.execute(
             "INSERT INTO preset_settings (preset_id, setting_name, setting_value) 
@@ -119,7 +228,6 @@ pub fn save_preset(conn: &mut Connection, preset: &SettingsPreset) -> Result<i64
     Ok(preset_id)
 }
 
-/// Load a settings preset from the database by ID
 pub fn load_preset_by_id(conn: &Connection, id: i64) -> Result<SettingsPreset> {
     let mut stmt = conn.prepare(
         "SELECT id, name, description, created_at FROM presets WHERE id = ?1"
@@ -140,7 +248,6 @@ pub fn load_preset_by_id(conn: &Connection, id: i64) -> Result<SettingsPreset> {
         })
     })?;
 
-    // Load settings for this preset
     let mut settings = HashMap::new();
     let mut stmt = conn.prepare(
         "SELECT setting_name, setting_value FROM preset_settings WHERE preset_id = ?1"
@@ -163,7 +270,6 @@ pub fn load_preset_by_id(conn: &Connection, id: i64) -> Result<SettingsPreset> {
     })
 }
 
-/// Get all presets from the database
 pub fn get_all_presets(conn: &Connection) -> Result<Vec<SettingsPreset>> {
     let mut stmt = conn.prepare(
         "SELECT id, name, description, created_at FROM presets ORDER BY name"
@@ -193,8 +299,15 @@ pub fn get_all_presets(conn: &Connection) -> Result<Vec<SettingsPreset>> {
     Ok(presets)
 }
 
-/// Delete a preset from the database
 pub fn delete_preset(conn: &mut Connection, id: i64) -> Result<()> {
     conn.execute("DELETE FROM presets WHERE id = ?1", params![id])?;
     Ok(())
+}
+
+pub fn get_all_settings(conn: &Connection) -> Result<Vec<Setting>> {
+    migrations::get_all_settings(conn)
+}
+
+pub fn save_setting(conn: &mut Connection, setting: &Setting) -> Result<()> {
+    migrations::save_setting(conn, setting)
 }

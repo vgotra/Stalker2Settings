@@ -1,5 +1,7 @@
 # Stalker 2 Settings
 
+## Some Test App for managing Engine.ini settings 
+
 ## Configuration tested
 
 Processor: AMD Ryzen 9 7950 X3D 4.20 Ghz

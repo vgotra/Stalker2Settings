@@ -4,18 +4,18 @@ use crate::models::{Setting, SettingValueType};
 // This function has been replaced by individual migration files
 
 // Import all migration modules
-mod system_settings;
-mod rendering_thread;
-mod error_handling;
-mod streaming_settings;
-mod renderer_settings;
-mod input_settings;
-mod core_system;
-mod texture_streaming;
-mod engine;
-mod shader_compiler;
-mod core_log;
-mod garbage_collection;
+pub mod system_settings;
+pub mod rendering_thread;
+pub mod error_handling;
+pub mod streaming_settings;
+pub mod renderer_settings;
+pub mod input_settings;
+pub mod core_system;
+pub mod texture_streaming;
+pub mod engine;
+pub mod shader_compiler;
+pub mod core_log;
+pub mod garbage_collection;
 
 pub fn run_migrations(conn: &mut Connection) -> Result<()> {
     create_settings_table(conn)?;

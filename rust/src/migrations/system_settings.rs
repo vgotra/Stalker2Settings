@@ -5,7 +5,7 @@ pub fn migrate(conn: &mut Connection) -> Result<()> {
     // SystemSettings section
     let settings = vec![
         Setting {
-            name: "r.PSOWarmup.WarmupMaterials".to_string(),
+            name: String::from("r.PSOWarmup.WarmupMaterials"),
             section: "SystemSettings".to_string(),
             description: "Enables shader precompilation for materials, reducing in-game stuttering".to_string(),
             value_type: SettingValueType::Boolean,

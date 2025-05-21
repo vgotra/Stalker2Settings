@@ -2,6 +2,38 @@
 
 ## Some Test App for managing Engine.ini settings 
 
+## Project Structure
+
+This project contains implementations in multiple languages:
+
+- `rust/` - Rust implementation of the settings manager
+- `dotnet/` - .NET implementation of the settings manager
+- Root directory - Configuration files and documentation
+
+### Rust Implementation
+
+To build and run the Rust implementation:
+
+```bash
+cd rust
+cargo build
+cargo run
+```
+
+The Rust implementation reads and writes configuration files from the root directory.
+
+### .NET Implementation
+
+To build and run the .NET implementation:
+
+```bash
+cd dotnet/Stalker2Settings
+dotnet build
+dotnet run
+```
+
+The .NET implementation uses Terminal.Gui v2 for the terminal interface and reads/writes the same configuration files as the Rust implementation.
+
 ## Configuration tested
 
 Processor: AMD Ryzen 9 7950 X3D 4.20 Ghz

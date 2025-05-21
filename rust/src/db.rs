@@ -6,7 +6,7 @@ use chrono;
 use crate::migrations;
 
 pub fn initialize_db(recreate_db: bool) -> Result<Connection> {
-    let db_path = Path::new("settings.db");
+    let db_path = Path::new("../settings.db");
     let mut db_exists = db_path.exists();
 
     // If recreate_db is true and the database exists, delete it
@@ -52,7 +52,7 @@ pub fn initialize_db(recreate_db: bool) -> Result<Connection> {
 
 fn create_default_presets(conn: &mut Connection) -> Result<()> {
     // Parse Engine.ini to get default settings
-    let engine_ini_path = std::path::Path::new("Engine.ini");
+    let engine_ini_path = std::path::Path::new("../Engine.ini");
     let default_settings = match crate::config::parse_ini_file(engine_ini_path) {
         Ok(settings) => {
             let mut settings_map = HashMap::new();

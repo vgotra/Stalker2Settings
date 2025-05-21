@@ -57,12 +57,12 @@ pub fn generate_engine_ini_from_preset(preset: &SettingsPreset) -> io::Result<()
         if parts.len() == 2 {
             let section = parts[0];
             let name = parts[1];
-            let section_map = ini_data.entry(section.to_string()).or_insert_with(HashMap::new);
-            section_map.insert(name.to_string(), value.clone());
+            let section_map = ini_data.entry(String::from(section)).or_insert_with(HashMap::new);
+            section_map.insert(String::from(name), value.clone());
         }
     }
 
-    generate_ini_file(Path::new("Engine.ini"), &ini_data)
+    generate_ini_file(Path::new("../Engine.ini"), &ini_data)
 }
 
 
@@ -78,7 +78,7 @@ pub fn generate_recommended_settings(system_info: &crate::models::SystemInfo, co
                     // Found a matching preset, return it with updated description
                     return Some(SettingsPreset {
                         id: preset.id,
-                        name: "Recommended".to_string(),
+                        name: String::from("Recommended"),
                         description: format!("Recommended settings for your system: {} with {} VRAM", 
                                            system_info.gpu_name, system_info.gpu_vram_mb),
                         created_at: chrono::Local::now().to_rfc3339(),
@@ -95,7 +95,7 @@ pub fn generate_recommended_settings(system_info: &crate::models::SystemInfo, co
         if let Some(preset) = find_preset(connection) {
             return preset;
         }
-    } else if let Ok(temp_conn) = Connection::open(Path::new("settings.db")) {
+    } else if let Ok(temp_conn) = Connection::open(Path::new("../settings.db")) {
         if let Some(preset) = find_preset(&temp_conn) {
             return preset;
         }
@@ -104,11 +104,11 @@ pub fn generate_recommended_settings(system_info: &crate::models::SystemInfo, co
     // Fallback to hardcoded settings if no preset found
     let mut settings = HashMap::new();
 
-    settings.insert("SystemSettings.r.VSync".to_string(), "0".to_string());
-    settings.insert("RenderingThread.bAllowThreadedRendering".to_string(), "True".to_string());
-    settings.insert("RenderingThread.bAllowAsyncRenderThreadUpdates".to_string(), "True".to_string());
-    settings.insert("Engine.InputSettings.RawMouseInputEnabled".to_string(), "1".to_string());
-    settings.insert("Engine.InputSettings.bEnableMouseSmoothing".to_string(), "False".to_string());
+    settings.insert(String::from("SystemSettings.r.VSync"), String::from("0"));
+    settings.insert(String::from("RenderingThread.bAllowThreadedRendering"), String::from("True"));
+    settings.insert(String::from("RenderingThread.bAllowAsyncRenderThreadUpdates"), String::from("True"));
+    settings.insert(String::from("Engine.InputSettings.RawMouseInputEnabled"), String::from("1"));
+    settings.insert(String::from("Engine.InputSettings.bEnableMouseSmoothing"), String::from("False"));
 
     let vram_mb = system_info.gpu_vram_mb;
     let streaming_pool_size = if vram_mb > 8000 {
@@ -122,27 +122,27 @@ pub fn generate_recommended_settings(system_info: &crate::models::SystemInfo, co
     };
 
     settings.insert(
-        "SystemSettings.r.Streaming.PoolSize".to_string(),
-        streaming_pool_size.to_string(),
+        String::from("SystemSettings.r.Streaming.PoolSize"),
+        format!("{}", streaming_pool_size),
     );
 
     let cpu_cores = system_info.cpu_cores;
     if cpu_cores >= 8 {
-        settings.insert("SystemSettings.r.AllowMultiThreadedShaderCreation".to_string(), "1".to_string());
-        settings.insert("ShaderCompiler.bAllowCompilingThroughWorkerThreads".to_string(), "True".to_string());
-        settings.insert("ShaderCompiler.NumUnusedShaderCompilingThreads".to_string(), "3".to_string());
+        settings.insert(String::from("SystemSettings.r.AllowMultiThreadedShaderCreation"), String::from("1"));
+        settings.insert(String::from("ShaderCompiler.bAllowCompilingThroughWorkerThreads"), String::from("True"));
+        settings.insert(String::from("ShaderCompiler.NumUnusedShaderCompilingThreads"), String::from("3"));
     } else if cpu_cores >= 4 {
-        settings.insert("SystemSettings.r.AllowMultiThreadedShaderCreation".to_string(), "1".to_string());
-        settings.insert("ShaderCompiler.bAllowCompilingThroughWorkerThreads".to_string(), "True".to_string());
-        settings.insert("ShaderCompiler.NumUnusedShaderCompilingThreads".to_string(), "1".to_string());
+        settings.insert(String::from("SystemSettings.r.AllowMultiThreadedShaderCreation"), String::from("1"));
+        settings.insert(String::from("ShaderCompiler.bAllowCompilingThroughWorkerThreads"), String::from("True"));
+        settings.insert(String::from("ShaderCompiler.NumUnusedShaderCompilingThreads"), String::from("1"));
     } else {
-        settings.insert("SystemSettings.r.AllowMultiThreadedShaderCreation".to_string(), "0".to_string());
-        settings.insert("ShaderCompiler.bAllowCompilingThroughWorkerThreads".to_string(), "False".to_string());
+        settings.insert(String::from("SystemSettings.r.AllowMultiThreadedShaderCreation"), String::from("0"));
+        settings.insert(String::from("ShaderCompiler.bAllowCompilingThroughWorkerThreads"), String::from("False"));
     }
 
     SettingsPreset {
         id: None,
-        name: "Recommended".to_string(),
+        name: String::from("Recommended"),
         description: format!("Recommended settings for your system: {} with {} VRAM", 
                             system_info.gpu_name, system_info.gpu_vram_mb),
         created_at: chrono::Local::now().to_rfc3339(),

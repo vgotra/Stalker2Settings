@@ -8,9 +8,9 @@ pub fn get_system_info() -> SystemInfo {
     sys.refresh_all();
 
     let cpu_name = if !sys.cpus().is_empty() {
-        sys.cpus()[0].brand().to_string()
+        String::from(sys.cpus()[0].brand())
     } else {
-        "Unknown CPU".to_string()
+        String::from("Unknown CPU")
     };
 
     let cpu_cores = sys.cpus().len() as u32;
@@ -28,7 +28,7 @@ pub fn get_system_info() -> SystemInfo {
 }
 
 fn detect_gpu_info(sys: &mut System) -> (String, u64) {
-    let mut gpu_name = "Unknown GPU".to_string();
+    let mut gpu_name = String::from("Unknown GPU");
     let mut gpu_vram_mb = 2048;
 
     #[cfg(target_os = "windows")]
@@ -42,7 +42,7 @@ fn detect_gpu_info(sys: &mut System) -> (String, u64) {
                 if lines.len() > 1 {
                     let parts: Vec<&str> = lines[1].split(',').collect();
                     if parts.len() >= 3 {
-                        gpu_name = parts[1].trim().to_string();
+                        gpu_name = String::from(parts[1].trim());
                         if let Ok(vram) = parts[2].trim().parse::<u64>() {
                             gpu_vram_mb = vram / (1024 * 1024);
                             return (gpu_name, gpu_vram_mb);
@@ -63,7 +63,7 @@ fn detect_gpu_info(sys: &mut System) -> (String, u64) {
                 for line in output_str.lines() {
                     if line.contains("VGA") || line.contains("3D") {
                         if let Some(name_start) = line.find(':') {
-                            gpu_name = line[name_start + 1..].trim().to_string();
+                            gpu_name = String::from(line[name_start + 1..].trim());
                             break;
                         }
                     }
@@ -82,7 +82,7 @@ fn detect_gpu_info(sys: &mut System) -> (String, u64) {
                 for line in output_str.lines() {
                     if line.contains("Chipset Model:") {
                         if let Some(name_start) = line.find(':') {
-                            gpu_name = line[name_start + 1..].trim().to_string();
+                            gpu_name = String::from(line[name_start + 1..].trim());
                             break;
                         }
                     }
@@ -109,7 +109,7 @@ fn detect_gpu_info(sys: &mut System) -> (String, u64) {
     for component in sys.components() {
         let label = component.label().to_lowercase();
         if label.contains("gpu") || label.contains("graphics") {
-            gpu_name = component.label().to_string();
+            gpu_name = String::from(component.label());
             break;
         }
     }

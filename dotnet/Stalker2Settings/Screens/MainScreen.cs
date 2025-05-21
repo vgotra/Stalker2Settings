@@ -11,7 +11,7 @@ public class MainScreen
 {
     private readonly Database _db;
     private readonly List<Setting> _settings;
-    private readonly SystemInfo _systemInfo;
+    private readonly SystemInfo _systemInfo = new();
     private SettingsPreset? _currentPreset;
 
     /// <summary>
@@ -21,7 +21,7 @@ public class MainScreen
     {
         _db = db;
         _settings = _db.GetAllSettings();
-        _systemInfo = System.GetSystemInfo();
+        //_systemInfo = System.GetSystemInfo();
         _currentPreset = null;
     }
 

@@ -14,7 +14,7 @@ Motheboard: MPG X670E Carbon Wifi with latest firmware
 
 Just copy **Engine.ini** to folder **C:\Users\\%USERNAME%\AppData\Local\Stalker2\Saved\Config\Windows** and replace existing file. Change your settings in game if you need to change them!
 
-You can also replace **GameUserSettings.ini** (but pls make backup of yours file before, it contains games settings which you selected in game: graphics quality, resolution, and other settings etc).
+You can also copy settings from **GameUserSettings.ini** (but pls make backup of yours file before, it contains games settings which you selected in game: graphics quality, resolution, and other settings etc).
 
 Brief current settings:
  - 2K,
@@ -22,6 +22,8 @@ Brief current settings:
  - disabled FSR frame generation (more FPS but causes issues in some locations, especially in fight with Faust)
  - high quality of sky and related (Ultra only provides a minor improvement over High)
  - other changes
+
+In **GameUserSettings_2.ini** profile reused TSR with 90 ResolutionQuality, also decresed some useless settings DoF, Motion Blur, Hair display quality, some shadows quality, etc.
 
 ## FPS
 

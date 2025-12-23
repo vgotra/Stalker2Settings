@@ -2,13 +2,13 @@
 
 ## Configuration tested
 
-Processor: AMD Ryzen 9 7950 X3D 4.20 Ghz
+Processor: AMD Ryzen 9 7950 X3D 4.20 Ghz (with enabled X3d Gaming)
 
 Video: AMD Radeon RX 6800 XT
 
 Memory: 96 Gb (DDR 5, 6000 MT/s overclocked)
 
-Motheboard: MPG X670E Carbon Wifi with latest firmware
+Motherboard: MPG X670E Carbon Wifi with latest stable firmware
 
 ## How to apply on PC
 
@@ -16,21 +16,16 @@ Just copy **Engine.ini** to folder **C:\Users\\%USERNAME%\AppData\Local\Stalker2
 
 You can also copy settings from **GameUserSettings.ini** (but pls make backup of yours file before, it contains games settings which you selected in game: graphics quality, resolution, and other settings etc).
 
-Brief current settings:
- - 2K,
- - FSR Profile: Quality
- - disabled FSR frame generation (more FPS but causes issues in some locations, especially in fight with Faust)
- - high quality of sky and related (Ultra only provides a minor improvement over High)
- - other changes
+I enabled mostly High and Epic settings. 
 
-In **GameUserSettings_2.ini** profile reused TSR with 90 ResolutionQuality, also decresed some useless settings DoF, Motion Blur, Hair display quality, some shadows quality, etc.
+To get more FPS just change them.
 
 ## FPS
 
-Avg 75-90 FPS in mostly scenes. Very playable with very good graphics quality!
+Avg 60 FPS in mostly scenes (but FSR is disabled, and ResolutionQuality=100). Very playable with very very good graphics quality!
 
 ## Screenshot
 
-![FPS and Quality](Screenshot_1_5_3.png)
+![Screenshot](Stalker2_1_7_1.png)
 
 P.S. Let wait for improvements from devs
